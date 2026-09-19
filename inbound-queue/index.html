@@ -1,0 +1,191 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Inbound Queue Decision Matrix</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#f4f6f8;--paper:#ffffff;--ink:#16191d;--ink2:#4a5360;--ink3:#7a8390;--rule:#dfe4ea;--rule2:#eef1f4;--accent:#1a56c4;--accent-ink:#ffffff;--amber:#b6660a;--amber-bg:#fbf1e2;--red:#b42323;--red-bg:#fbe9e9;--code-bg:#eceff3;--hl:#fff7e6;--shadow:0 1px 0 rgba(22,25,29,.06)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0f1216;--paper:#161a20;--ink:#e9edf1;--ink2:#b3bcc7;--ink3:#7f8894;--rule:#2a3139;--rule2:#1f252c;--accent:#7aa7ff;--accent-ink:#0f1216;--amber:#e8a94a;--amber-bg:#2c2415;--red:#ff7b7b;--red-bg:#2e1a1a;--code-bg:#232a32;--hl:#2a2517}}
+:root[data-theme="dark"]{--bg:#0f1216;--paper:#161a20;--ink:#e9edf1;--ink2:#b3bcc7;--ink3:#7f8894;--rule:#2a3139;--rule2:#1f252c;--accent:#7aa7ff;--accent-ink:#0f1216;--amber:#e8a94a;--amber-bg:#2c2415;--red:#ff7b7b;--red-bg:#2e1a1a;--code-bg:#232a32;--hl:#2a2517}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"IBM Plex Sans",-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;font-size:16px;line-height:1.55;font-feature-settings:"tnum" 1}
+code{font-family:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:.88em;background:var(--code-bg);padding:.08em .35em;border-radius:3px;word-break:break-word}
+a{color:var(--accent)}
+h1,h2,h3,h4{line-height:1.2;margin:0}
+p{margin:0 0 1em}
+.wrap{max-width:1120px;margin:0 auto;padding:0 24px}
+/* masthead */
+.mast{background:var(--paper);border-bottom:1px solid var(--rule);position:sticky;top:0;z-index:5}
+.mast .wrap{display:flex;align-items:center;justify-content:space-between;gap:16px;min-height:60px;flex-wrap:wrap}
+.brand{display:flex;flex-direction:column;line-height:1.15;padding:10px 0}
+.brand b{font-weight:600;font-size:15px}
+.brand span{font-size:12.5px;color:var(--ink3)}
+.tabs{display:flex;gap:4px;margin-left:auto}
+.tabs button,.tabs a{appearance:none;border:0;background:transparent;font:inherit;font-size:14px;font-weight:500;color:var(--ink2);padding:8px 12px;border-radius:6px;cursor:pointer;text-decoration:none;display:inline-block}
+.tabs a:hover{color:var(--ink)}
+.tabs button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
+.tabs button:focus-visible,.tabs a:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.view{display:none}.view.active{display:block}
+/* readout */
+.readout{padding:48px 0 64px}
+.docmeta{color:var(--ink3);font-size:13.5px;margin-bottom:28px}
+.docmeta b{color:var(--ink);font-weight:500}
+.hero{display:grid;grid-template-columns:minmax(0,7fr) minmax(0,5fr);gap:48px;align-items:start;margin-bottom:56px}
+.hero h1{font-size:clamp(28px,3.4vw,40px);font-weight:600;letter-spacing:-.015em;margin-bottom:20px}
+.hero .lede p{font-size:18px;line-height:1.5;color:var(--ink);max-width:62ch}
+.hero .lede p+p{color:var(--ink2)}
+.compare{border-top:1px solid var(--ink);padding-top:14px}
+.compare .cap{font-size:13.5px;color:var(--ink3);margin-bottom:18px}
+.bar{margin-bottom:18px}
+.bar .lab{display:flex;justify-content:baseline;gap:12px;align-items:baseline;margin-bottom:6px}
+.bar .lab b{font-size:34px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.bar .lab span{font-size:14px;color:var(--ink2)}
+.bar .track{height:14px;background:var(--rule2);border-radius:2px;overflow:hidden}
+.bar .fill{height:100%;background:var(--ink);width:0;transition:width .9s cubic-bezier(.2,.7,.2,1)}
+.bar.hot .fill{background:var(--red)}
+.compare .note{font-size:13.5px;color:var(--ink2);margin-top:6px}
+.section-title{font-size:13.5px;font-weight:600;color:var(--ink3);margin:0 0 14px;padding-top:8px}
+.costs{display:grid;grid-template-columns:repeat(6,1fr);border-top:1px solid var(--ink);border-bottom:1px solid var(--rule);margin-bottom:56px}
+.cost{padding:18px 16px 16px 0;border-right:1px solid var(--rule);margin-right:16px}
+.cost:last-child{border-right:0;margin-right:0}
+.cost .delta{font-size:26px;font-weight:600;letter-spacing:-.02em;line-height:1}
+.cost .cname{font-size:13.5px;font-weight:500;margin:8px 0 6px}
+.cost p{font-size:12.5px;line-height:1.45;color:var(--ink2);margin:0}
+.commits{display:grid;grid-template-columns:1fr 1fr;gap:28px 40px;margin-bottom:56px}
+.commit{border-top:2px solid var(--amber);padding-top:14px}
+.commit.red{border-top-color:var(--red)}
+.chead{display:flex;gap:12px;align-items:baseline;margin-bottom:8px}
+.cnum{font-size:13px;color:var(--ink3);font-weight:500}
+.commit h4{font-size:19px;font-weight:600;letter-spacing:-.01em}
+.status{display:inline-block;font-size:12.5px;font-weight:500;padding:2px 8px;border-radius:4px;background:var(--amber-bg);color:var(--amber);margin-bottom:10px;vertical-align:middle}
+.status.red{background:var(--red-bg);color:var(--red)}
+.commit p{font-size:15px;color:var(--ink2);margin-bottom:10px}
+.commit .more{font-size:14px;font-weight:500;text-decoration:none;border-bottom:1px solid currentColor}
+.tw{overflow-x:auto;margin:0 0 24px}
+table{border-collapse:collapse;width:100%;font-size:14.5px}
+th{text-align:left;font-weight:500;color:var(--ink3);font-size:13px;padding:8px 12px 8px 0;border-bottom:1px solid var(--ink)}
+td{padding:11px 12px 11px 0;border-bottom:1px solid var(--rule);vertical-align:top}
+tr.hl td{background:var(--hl)}
+.seq td:first-child{white-space:nowrap}.seq{min-width:640px}.plan-section td:first-child>code{white-space:nowrap}
+.ask{border-left:3px solid var(--accent);padding:6px 0 6px 22px;max-width:70ch;margin-bottom:8px}
+.ask p{font-size:17px;margin:0}
+/* plan */
+.plan{display:grid;grid-template-columns:220px minmax(0,1fr);gap:56px;padding:40px 0 80px}
+.sidenav{position:sticky;top:76px;align-self:start;display:flex;flex-direction:column;gap:2px;font-size:14px}
+.sidenav a{color:var(--ink2);text-decoration:none;padding:6px 10px;border-left:2px solid transparent;border-radius:0 4px 4px 0}
+.sidenav a:hover{color:var(--ink)}
+.sidenav a.cur{color:var(--ink);border-left-color:var(--ink);background:var(--paper)}
+.plan-main{max-width:74ch;min-width:0}
+.plan-section{padding-top:8px;margin-bottom:56px;scroll-margin-top:84px}
+.plan-section h3{font-size:24px;font-weight:600;letter-spacing:-.015em;margin-bottom:18px;padding-bottom:12px;border-bottom:1px solid var(--ink)}
+.plan-section h3 .status{margin:0 0 0 12px;font-size:12.5px;vertical-align:middle;position:relative;top:-2px}
+.plan-section h4{font-size:16.5px;font-weight:600;margin:28px 0 10px}
+.plan-section ul,.plan-section ol{padding-left:22px;margin:0 0 16px}
+.plan-section li{margin-bottom:8px}
+.plan-section li>ul{margin-top:6px}
+.plan-section li>p{margin:0 0 6px}
+.plan-section ol>li::marker{font-weight:600;color:var(--ink3)}
+.docs{display:block;font-size:13px;color:var(--ink3);margin-top:3px}
+.verify{display:inline-block;font-size:11.5px;font-weight:500;color:var(--ink3);border:1px solid var(--rule);border-radius:4px;padding:0 6px;line-height:18px;vertical-align:middle;margin:0 2px}
+.strategy{border:1px solid var(--rule);background:var(--paper);padding:6px 22px 8px;border-radius:6px;margin:8px 0 24px}
+.strategy>h4:first-child{margin-top:16px}
+details.evidence{margin:6px 0 22px;border:1px solid var(--rule);border-radius:6px;background:var(--paper)}
+details.evidence summary{cursor:pointer;padding:10px 14px;font-size:14px;font-weight:500;color:var(--ink2);list-style:none;display:flex;align-items:center;gap:8px}
+details.evidence summary::before{content:"";width:6px;height:6px;border-right:1.5px solid currentColor;border-bottom:1.5px solid currentColor;transform:rotate(-45deg);transition:transform .15s}
+details.evidence[open] summary::before{transform:rotate(45deg)}
+details.evidence summary::-webkit-details-marker{display:none}
+details.evidence>*:not(summary){padding:0 14px 14px}
+figure{margin:0}
+figure img{display:block;width:100%;height:auto;max-width:100%;border:1px solid var(--rule);border-radius:4px}
+figcaption{font-size:13px;color:var(--ink2);margin-top:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.foot{border-top:1px solid var(--rule);color:var(--ink3);font-size:12.5px;padding:20px 0 40px}
+@media (max-width:900px){.hero{grid-template-columns:1fr;gap:28px}.costs{grid-template-columns:repeat(3,1fr)}.cost:nth-child(3){border-right:0}.cost:nth-child(n+4){border-top:1px solid var(--rule)}.plan{grid-template-columns:1fr;gap:20px}.sidenav{position:static;flex-direction:row;flex-wrap:wrap;gap:6px;border-bottom:1px solid var(--rule);padding-bottom:12px}.sidenav a{border:1px solid var(--rule);border-radius:999px;padding:5px 11px;font-size:13px}.sidenav a.cur{background:var(--ink);color:var(--paper);border-color:var(--ink)}}
+@media (max-width:600px){.commits{grid-template-columns:1fr}.costs{grid-template-columns:1fr 1fr}.cost:nth-child(3){border-right:1px solid var(--rule)}.cost:nth-child(even){border-right:0}.cost:nth-child(n+3){border-top:1px solid var(--rule)}.grid2{grid-template-columns:1fr}.mast .wrap{align-items:flex-start}.tabs{margin-left:0;padding-bottom:8px}.hero .lede p{font-size:16.5px}.bar .lab b{font-size:28px}}
+@media (prefers-reduced-motion:reduce){.bar .fill{transition:none}}
+@media print{body{background:#fff;color:#000}.mast{position:static}.tabs,.sidenav,.foot{display:none}.view{display:block!important}.readout{padding:0 0 24px}.plan{display:block;padding:0}.plan-section{break-inside:avoid-page;margin-bottom:28px}details.evidence[open],details.evidence{display:block}details.evidence>*:not(summary){display:block}.commit,.costs,table,tr,figure{break-inside:avoid}.hero{gap:24px;margin-bottom:28px}.costs{margin-bottom:28px}.commits{margin-bottom:28px;gap:16px 28px}.more{display:none}.commit p{font-size:13px}.cost p{font-size:11px}.hero .lede p{font-size:15px}.hero h1{font-size:26px}}
+
+.queue{min-width:900px;font-size:14.5px}
+.queue th:first-child,.queue td:first-child{width:56px;padding-right:0}
+.queue td:nth-child(2){width:220px;font-weight:500}
+.queue td:nth-child(3){width:340px}
+.queue td:nth-child(5){color:var(--ink2)}
+.ord{display:inline-flex;width:26px;height:26px;border-radius:50%;background:var(--ink);color:var(--paper);align-items:center;justify-content:center;font-size:13px;font-weight:600}
+.internal{display:inline-block;font-size:12px;font-weight:500;color:var(--amber);background:var(--amber-bg);padding:2px 8px;border-radius:4px;margin-left:10px;vertical-align:middle}
+.intro{max-width:74ch;font-size:16.5px;color:var(--ink2);margin:0 0 28px}
+.timing{max-width:74ch;font-size:15px;border-left:3px solid var(--accent);padding:4px 0 4px 18px;margin-top:8px}
+@media (max-width:700px){.queue{min-width:0}.queue thead{display:none}.queue tr{display:block;border-top:1px solid var(--ink);padding:14px 0 6px;margin-bottom:6px}.queue td{display:block;width:auto!important;border:0;padding:4px 0}.queue td:first-child{padding-bottom:6px}.queue td:nth-child(3)::before{content:"How I'd handle it";display:block;font-size:12px;color:var(--ink3)}.queue td:nth-child(4)::before{content:"Why";display:block;font-size:12px;color:var(--ink3)}.queue td:nth-child(5)::before{content:"Owner";display:block;font-size:12px;color:var(--ink3)}}
+</style></head><body>
+<header class="mast"><div class="wrap">
+  <div class="brand"><b>Northwind Supply Co.</b><span>Technical Health Review · Vercel</span></div>
+  <nav class="tabs" role="tablist"><a href="/">Executive readout</a><a href="/#plan">Account plan</a><button role="tab" aria-selected="true">Inbound queue</button></nav>
+</div></header>
+<main><div class="wrap readout">
+<div class="docmeta">Prepared by <b>Heidi Williams-Foy</b>, Technical Account Manager, Vercel &nbsp;·&nbsp; Internal — not part of the Northwind client deliverable</div>
+<h1 style="font-size:clamp(26px,3vw,36px);font-weight:600;letter-spacing:-.015em;margin-bottom:18px">Seven items, in the order I'd work them <span class="internal">Internal</span></h1>
+<p class="intro">Seven items arrived in the first weeks on the account. The ordering below is by business impact and urgency, with a tiebreaker on how fast each can be cleared. Routing an item elsewhere doesn't end the TAM's involvement: the TAM still owns the acknowledgment, the handoff, and the follow-through the customer experiences.</p>
+<div class="tw"><table class="queue">
+<thead>
+<tr>
+<th>Order</th>
+<th>Item</th>
+<th>How I'd handle it</th>
+<th>Why</th>
+<th>Owner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><span class="ord">1</span></td>
+<td>P2 escalation: checkout latency up sharply since yesterday</td>
+<td>Acknowledge immediately. Engage support and engineering, check for platform-side changes, and own customer communication on a set cadence until resolved.</td>
+<td>Checkout is revenue and it is degrading right now.</td>
+<td>TAM coordinates; support and engineering investigate</td>
+</tr>
+<tr>
+<td><span class="ord">2</span></td>
+<td>Support ticket about a failed deploy, sent directly to me</td>
+<td>Warm handoff to support with a ticket opened on the customer's behalf. Flag the possible link to the latency escalation.</td>
+<td>Same day as the P2, and "since yesterday" plus a failed deploy may be one incident.</td>
+<td>Support; TAM stays copied</td>
+</tr>
+<tr>
+<td><span class="ord">3</span></td>
+<td>Cost anomaly in the usage dashboard that nobody has flagged</td>
+<td>Investigate the dashboard, form a hypothesis, and bring findings to the customer before they see it on an invoice.</td>
+<td>Catching cost movement early is the TAM's core value. The AE only gets involved if it turns commercial.</td>
+<td>TAM</td>
+</tr>
+<tr>
+<td><span class="ord">4</span></td>
+<td>"When is feature X shipping? We need a date for our board deck"</td>
+<td>Get the official position from Product, return with what can be shared (roadmap stage, not a committed date), and offer a PM conversation if they need more.</td>
+<td>Date-bound and quick to unblock. An unofficial date must never reach a board.</td>
+<td>TAM with Product</td>
+</tr>
+<tr>
+<td><span class="ord">5</span></td>
+<td>"Can you join our Tuesday and Thursday standups and pair with us on the migration?"</td>
+<td>Decline the standing cadence. Offer a migration kickoff, an architecture review, and office hours at milestones. If they need embedded engineers, route to professional services through the AE.</td>
+<td>Set expectations early so the team plans around real support.</td>
+<td>TAM; AE for services</td>
+</tr>
+<tr>
+<td><span class="ord">6</span></td>
+<td>Request to run a training session for a newly hired frontend team</td>
+<td>Scope it with the customer (caching and function configuration belong on the agenda), route delivery to the enablement team, and open or co-present.</td>
+<td>Valuable but not urgent. Scoping is what makes it land.</td>
+<td>Enablement; TAM scopes</td>
+</tr>
+<tr>
+<td><span class="ord">7</span></td>
+<td>Question from a different business unit about a product outside my workload</td>
+<td>Answer if trivial. Otherwise introduce them to the account team.</td>
+<td>An expansion signal for the AE, not part of this workload.</td>
+<td>AE</td>
+</tr>
+</tbody>
+</table></div>
+<p class="timing"><strong>Timing:</strong> items 1 and 2 are the same day. Items 3 and 4 are the same week. Items 5 through 7 get scheduled.</p>
+</div></main>
+<footer class="foot"><div class="wrap">Companion to the Northwind Supply Co. Technical Health Review. Not part of the client deliverable.</div></footer>
+</body></html>
